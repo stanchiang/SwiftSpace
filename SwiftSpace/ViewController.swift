@@ -10,9 +10,7 @@ import UIKit
 import SceneKit
 import CoreMotion
 
-class ViewController: UIViewController
-{
-    
+class ViewController: UIViewController {
     
     let buttonBar = UIToolbar()
     
@@ -34,22 +32,22 @@ class ViewController: UIViewController
     
     override func viewDidLoad()
     {
-        guard motionManager.gyroAvailable else
+        guard motionManager.isGyroAvailable else
         {
             fatalError("CMMotionManager not available.")
         }
         
         super.viewDidLoad()
         
-        let title = UIBarButtonItem(title: "flexmonkey.co.uk", style: UIBarButtonItemStyle.Plain, target: nil, action: nil)
-        let spacer = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.FlexibleSpace, target: nil, action: nil)
-        let clearButton = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Trash, target: self, action: "clear")
+        let title = UIBarButtonItem(title: "flexmonkey.co.uk", style: UIBarButtonItemStyle.plain, target: nil, action: nil)
+        let spacer = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.flexibleSpace, target: nil, action: nil)
+        let clearButton = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.trash, target: self, action: #selector(ViewController.clear))
         buttonBar.items = [title, spacer, clearButton]
         
         view.addSubview(sceneKitView)
         view.addSubview(buttonBar)
         
-        sceneKitView.backgroundColor = UIColor.darkGrayColor()
+        sceneKitView.backgroundColor = UIColor.darkGray
         
         sceneKitView.scene = SCNScene()
         
@@ -75,37 +73,31 @@ class ViewController: UIViewController
 
         // motion manager
         
-        let queue = NSOperationQueue.mainQueue
+        let queue = OperationQueue.main
         
-        motionManager.deviceMotionUpdateInterval = 1 / 30
+        motionManager.deviceMotionUpdateInterval = 1 / 60
         
-        motionManager.startDeviceMotionUpdatesToQueue(queue())
-        {
-            (deviceMotionData: CMDeviceMotion?, error: NSError?) in
-            
-            if let deviceMotionData = deviceMotionData
-            {
-                if (self.initialAttitude == nil)
-                {
+        motionManager.startDeviceMotionUpdates(to: queue) { (deviceMotionData, error) in
+            if let deviceMotionData = deviceMotionData {
+                if (self.initialAttitude == nil) {
                     self.initialAttitude = (deviceMotionData.attitude.roll,
                         deviceMotionData.attitude.pitch)
                 }
-                
+
                 self.cameraNode.eulerAngles.y = Float(self.initialAttitude!.roll - deviceMotionData.attitude.roll)
                 self.cameraNode.eulerAngles.x = Float(self.initialAttitude!.pitch - deviceMotionData.attitude.pitch)
             }
         }
-        
     }
     
-    override func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent?)
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?)
     {
-        super.touchesBegan(touches, withEvent: event)
+        super.touchesBegan(touches, with: event)
         
         currentDrawingNode = SCNNode(geometry: SCNBox(width: 1, height: 1, length: 0, chamferRadius: 0))
         currentDrawingLayer = CAShapeLayer()
         
-        if let currentDrawingNode = currentDrawingNode, currentDrawingLayer = currentDrawingLayer
+        if let currentDrawingNode = currentDrawingNode, let currentDrawingLayer = currentDrawingLayer
         {
             currentDrawingNode.position = SCNVector3(x: 0, y: 0, z: 0)
             
@@ -114,7 +106,7 @@ class ViewController: UIViewController
             
             scene.rootNode.addChildNode(currentDrawingNode)
 
-            currentDrawingLayer.strokeColor = UIColor.whiteColor().CGColor
+            currentDrawingLayer.strokeColor = UIColor.white.cgColor
             currentDrawingLayer.fillColor = nil
             currentDrawingLayer.lineWidth = 10
             currentDrawingLayer.lineJoin = kCALineJoinRound
@@ -124,20 +116,20 @@ class ViewController: UIViewController
             let material = SCNMaterial()
             
             material.diffuse.contents = currentDrawingLayer
-            material.lightingModelName = SCNLightingModelConstant
+            material.lightingModel = SCNMaterial.LightingModel.constant
             
             currentDrawingNode.geometry?.materials = [material]
         }
     }
     
-    override func touchesMoved(touches: Set<UITouch>, withEvent event: UIEvent?)
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?)
     {
-        super.touchesMoved(touches, withEvent: event)
+        super.touchesMoved(touches, with: event)
         
-        let locationInView = touches.first?.locationInView(view)
+        let locationInView = touches.first?.location(in: view)
         
         if let hitTestResult:SCNHitTestResult = sceneKitView.hitTest(locationInView!, options: nil).filter( { $0.node == currentDrawingNode }).first,
-            currentDrawingLayer = currentDrawingLayer
+            let currentDrawingLayer = currentDrawingLayer
         {
             if currentDrawingLayer.path == nil
             {
@@ -155,13 +147,13 @@ class ViewController: UIViewController
             hermitePath.removeAllPoints()
             hermitePath.interpolatePointsWithHermite(interpolationPoints)
             
-            currentDrawingLayer.path = hermitePath.CGPath
+            currentDrawingLayer.path = hermitePath.cgPath
         }
     }
     
-    override func touchesEnded(touches: Set<UITouch>, withEvent event: UIEvent?)
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?)
     {
-        super.touchesEnded(touches, withEvent: event)
+        super.touchesEnded(touches, with: event)
 
         currentDrawingLayer = nil
         currentDrawingNode = nil
@@ -188,16 +180,16 @@ class ViewController: UIViewController
         super.viewDidLayoutSubviews()
         
         let topMargin = topLayoutGuide.length
-        let toolbarHeight = buttonBar.intrinsicContentSize().height
+        let toolbarHeight = buttonBar.intrinsicContentSize.height
         
         sceneKitView.frame = CGRect(x: 0, y: topMargin, width: view.frame.width, height: view.frame.height - topMargin - toolbarHeight)
         
         buttonBar.frame = CGRect(x: 0, y: view.frame.height - toolbarHeight, width: view.frame.width, height: toolbarHeight)
     }
     
-    override func supportedInterfaceOrientations() -> UIInterfaceOrientationMask
+    override var supportedInterfaceOrientations : UIInterfaceOrientationMask
     {
-        return UIInterfaceOrientationMask.Portrait
+        return UIInterfaceOrientationMask.portrait
     }
     
 }
